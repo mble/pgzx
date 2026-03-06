@@ -11,7 +11,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zls = {
-      url = "github:zigtools/zls";
+      url = "github:zigtools/zls/0.14.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.zig-overlay.follows = "zig-overlay";
     };
@@ -39,9 +39,21 @@
         };
     };
 
-    zls-overlay = final: prev: {
+    zls-overlay = final: prev: let
+      zig = final.zigpkgs.stable;
+      target = builtins.replaceStrings ["darwin"] ["macos"] prev.system;
+      zlsDeps = prev.callPackage ./nix/zls-deps.nix {inherit zig;};
+    in {
       zls = inputs.zls.packages.${prev.system}.zls.overrideAttrs (_oldAttrs: {
-        nativeBuildInputs = [final.zigpkgs.stable];
+        nativeBuildInputs = [zig];
+        buildPhase = ''
+          NO_COLOR=1
+          PACKAGE_DIR=${zlsDeps}
+          zig build install --global-cache-dir $(pwd)/.cache --system $PACKAGE_DIR -Dtarget=${target} -Doptimize=ReleaseSafe --prefix $out
+        '';
+        checkPhase = ''
+          zig build test --global-cache-dir $(pwd)/.cache --system $PACKAGE_DIR -Dtarget=${target}
+        '';
       });
     };
   in
