@@ -193,6 +193,9 @@ const includes = @cImport({
     @cInclude("tcop/tcopprot.h");
     @cInclude("tcop/utility.h");
 
+    // compat shims for PG version differences
+    @cInclude("tupdesc_compat.h");
+
     // libpq support
     @cInclude("libpq-fe.h");
     @cInclude("libpq/libpq-be.h");

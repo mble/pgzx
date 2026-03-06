@@ -296,13 +296,14 @@ pub fn convBinValue(comptime T: type, frame: SPIFrame, row: usize, col: c_int) !
 
 /// Access a TupleDesc's attribute by index.
 /// PG 16/17 expose attrs() as a flexible array member method.
-/// PG 18 removes attrs and provides TupleDescAttr() instead.
+/// PG 18 removes attrs and provides pgzx_TupleDescAttr() C shim instead.
 inline fn tupleDescGetAttr(desc: anytype, col: usize) *pg.FormData_pg_attribute {
     const TupleDesc = @TypeOf(desc.*);
     if (@hasDecl(TupleDesc, "attrs")) {
-        return &desc.*.attrs()[col];
+        // attrs() returns *allowzero; strip it via @ptrCast for the return type.
+        return @ptrCast(&desc.*.attrs()[col]);
     } else {
-        return pg.TupleDescAttr(desc, @intCast(col));
+        return pg.pgzx_TupleDescAttr(desc, @intCast(col));
     }
 }
 

@@ -26,9 +26,15 @@ fn pg_magic_init() Pg_magic_struct {
     if (@hasField(Pg_magic_struct, "funcmaxargs")) {
         magic.funcmaxargs = pg.FUNC_MAX_ARGS;
     }
-    magic.indexmaxkeys = pg.INDEX_MAX_KEYS;
-    magic.namedatalen = pg.NAMEDATALEN;
-    magic.float8byval = pg.FLOAT8PASSBYVAL;
+    if (@hasField(Pg_magic_struct, "indexmaxkeys")) {
+        magic.indexmaxkeys = pg.INDEX_MAX_KEYS;
+    }
+    if (@hasField(Pg_magic_struct, "namedatalen")) {
+        magic.namedatalen = pg.NAMEDATALEN;
+    }
+    if (@hasField(Pg_magic_struct, "float8byval")) {
+        magic.float8byval = pg.FLOAT8PASSBYVAL;
+    }
     magic.abi_extra = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     return magic;
 }

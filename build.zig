@@ -44,9 +44,10 @@ pub fn build(b: *std.Build) void {
             .cwd_relative = pgbuild.getLibDir(),
         });
 
-        // libpq support
+        // C shims for PG version compat and libpq support
         module.addCSourceFiles(.{
             .files = &[_][]const u8{
+                "./src/pgzx/c/tupdesc_compat.c",
                 "./src/pgzx/c/libpqsrv.c",
             },
             .flags = &[_][]const u8{
