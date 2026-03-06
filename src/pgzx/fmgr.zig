@@ -35,7 +35,9 @@ fn pg_magic_init() Pg_magic_struct {
     if (@hasField(Pg_magic_struct, "float8byval")) {
         magic.float8byval = pg.FLOAT8PASSBYVAL;
     }
-    magic.abi_extra = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    if (@hasField(Pg_magic_struct, "abi_extra")) {
+        magic.abi_extra = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    }
     return magic;
 }
 
