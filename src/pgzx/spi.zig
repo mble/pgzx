@@ -289,9 +289,21 @@ pub fn convBinValue(comptime T: type, frame: SPIFrame, row: usize, col: c_int) !
     const desc = table.*.tupdesc;
     nd.value = pg.SPI_getbinval(table.*.vals[row], desc, col, @ptrCast(&nd.isnull));
     try checkStatus(pg.SPI_result);
-    const attr_desc = &desc.*.attrs()[@intCast(col - 1)];
+    const attr_desc = tupleDescGetAttr(desc, @intCast(col - 1));
     const oid = attr_desc.atttypid;
     return try datum.fromNullableDatumWithOID(T, nd, oid);
+}
+
+/// Access a TupleDesc's attribute by index.
+/// PG 16/17 expose attrs() as a flexible array member method.
+/// PG 18 removes attrs and provides TupleDescAttr() instead.
+inline fn tupleDescGetAttr(desc: anytype, col: usize) *pg.FormData_pg_attribute {
+    const TupleDesc = @TypeOf(desc.*);
+    if (@hasDecl(TupleDesc, "attrs")) {
+        return &desc.*.attrs()[col];
+    } else {
+        return pg.TupleDescAttr(desc, @intCast(col));
+    }
 }
 
 fn checkStatus(st: c_int) err.PGError!void {

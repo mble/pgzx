@@ -17,15 +17,21 @@ pub const FN_INFO_V1 = [*c]const Pg_finfo_record;
 
 /// Use PG_MAGIC value to indicate to PostgreSQL that we have a loadable module.
 /// This value must be returned by a function named `Pg_magic_func`.
-pub const PG_MAGIC = Pg_magic_struct{
-    .len = @bitCast(@as(c_uint, @truncate(@sizeOf(Pg_magic_struct)))),
-    .version = @divTrunc(pg.PG_VERSION_NUM, @as(c_int, 100)),
-    .funcmaxargs = pg.FUNC_MAX_ARGS,
-    .indexmaxkeys = pg.INDEX_MAX_KEYS,
-    .namedatalen = pg.NAMEDATALEN,
-    .float8byval = pg.FLOAT8PASSBYVAL,
-    .abi_extra = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-};
+pub const PG_MAGIC = pg_magic_init();
+
+fn pg_magic_init() Pg_magic_struct {
+    var magic = std.mem.zeroes(Pg_magic_struct);
+    magic.len = @bitCast(@as(c_uint, @truncate(@sizeOf(Pg_magic_struct))));
+    magic.version = @divTrunc(pg.PG_VERSION_NUM, @as(c_int, 100));
+    if (@hasField(Pg_magic_struct, "funcmaxargs")) {
+        magic.funcmaxargs = pg.FUNC_MAX_ARGS;
+    }
+    magic.indexmaxkeys = pg.INDEX_MAX_KEYS;
+    magic.namedatalen = pg.NAMEDATALEN;
+    magic.float8byval = pg.FLOAT8PASSBYVAL;
+    magic.abi_extra = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    return magic;
+}
 
 /// Postgres magic indicator that a function uses the v1 UDF API.
 pub const PG_FINFO_V1_RECORD = Pg_finfo_record{
