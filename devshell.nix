@@ -64,6 +64,7 @@ in {
   shellHook = ''
     export PRJ_ROOT=$PWD
     export PG_HOME=$PRJ_ROOT/out/default
+    export PG_CONFIG=${postgresql}/bin/pg_config
     export PATH="$PG_HOME/lib/postgresql/pgxs/src/test/regress:$PATH"
     export PATH="$PG_HOME/bin:$PRJ_ROOT/dev/bin:$PATH"
 
