@@ -13,8 +13,15 @@ on:
 
 jobs:
   check_project:
-    name: Check
+    name: Check (${{ matrix.pg_version.name }})
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pg_version:
+          - { shell: "pg16", name: "PG 16" }
+          - { shell: "pg17", name: "PG 17" }
+          - { shell: "pg18", name: "PG 18" }
     steps:
       - name: git checkout
         uses: actions/checkout@v4
@@ -23,14 +30,15 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Init Nix environment
         run:
-          nix develop --command -- echo "Done"
+          nix develop .#${{ matrix.pg_version.shell }} --command -- echo "Done"
       - name: Run Commit checks
+        if: matrix.pg_version.shell == 'pg16'
         run: |
-          nix develop --command -- pre-commit run --all-files --color always
+          nix develop .#${{ matrix.pg_version.shell }} --command -- pre-commit run --all-files --color always
       - name: Create local postgres installation
         run: |
           sudo chown "$USER" /run/postgresql
-          nix develop --command -- ./ci/setup.sh
+          nix develop .#${{ matrix.pg_version.shell }} --command -- ./ci/setup.sh
       - name: Build and run tests
         run: |
-          nix develop --command -- ./ci/run.sh
+          nix develop .#${{ matrix.pg_version.shell }} --command -- ./ci/run.sh
