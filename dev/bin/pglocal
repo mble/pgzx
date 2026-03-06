@@ -52,47 +52,27 @@ outdir=${1:-$rootdir/out}
 postgres_major_version=$($PG_CONFIG --version | awk '{print $2}' | sed 's/\..*$//')
 new_install_dir=$outdir/$postgres_major_version
 
+# Copy top-level files from src_dir to dest_dir, dereferencing symlinks.
 cp_direct_files() {
 	local dest_dir=$1
 	local src_dir=$2
 	mkdir -p "$dest_dir"
-
-	# prepare sub directories in the destination directory to ensure write permissions.
-	find "$src_dir" -type d -printf '%P\n' | while read -r dir; do
-		target="${dest_dir}/${dir}"
-		mkdir -p "$target" && chmod u+w "$target" || return 1
-	done
-
-	# # copy the actual files only
-	find "$src_dir" -maxdepth 1 -type f | while read -r file; do
-		cp "$file" "$dest_dir" || return 1
-	done
-
-	# create symlinks
-	find "$src_dir" -maxdepth 1 -type l | while read -r link; do
-		ln -s "$(realpath "$link")" "$dest_dir/$(basename "$link")" || return 1
-	done
+	find "$src_dir" -maxdepth 1 \( -type f -o -type l \) -exec cp -Lf {} "$dest_dir/" \;
+	chmod -R u+w "$dest_dir" 2>/dev/null || true
 }
 
+# Recursively copy src_dir contents into dest_dir, dereferencing symlinks.
 cp_recursive() {
 	local dest_dir=$1
 	local src_dir=$2
-	mkdir -p "$dest_dir"
 
 	if [ ! -d "$src_dir" ]; then
 		return 0
 	fi
 
-	# prepare sub directories in the destination directory to ensure write permissions.
-	find "$src_dir" -type d -printf '%P\n' | while read -r dir; do
-		target="${dest_dir}/${dir}"
-		mkdir -p "$target" && chmod u+w "$target" || return 1
-	done
-
-	# copy files and dereference symlinks (Nix store uses symlinks extensively)
-	find "$src_dir" \( -type f -o -type l \) -printf '%P\n' | while read -r file; do
-		cp -rL "$src_dir/$file" "$dest_dir/$file" || return 1
-	done
+	mkdir -p "$dest_dir"
+	cp -rLf "$src_dir/." "$dest_dir/"
+	chmod -R u+w "$dest_dir"
 }
 
 mkdir -p "$new_install_dir"
