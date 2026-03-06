@@ -19,24 +19,29 @@ pub const FN_INFO_V1 = [*c]const Pg_finfo_record;
 /// This value must be returned by a function named `Pg_magic_func`.
 pub const PG_MAGIC = pg_magic_init();
 
+const abi_extra_val = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
 fn pg_magic_init() Pg_magic_struct {
     var magic = std.mem.zeroes(Pg_magic_struct);
     magic.len = @bitCast(@as(c_uint, @truncate(@sizeOf(Pg_magic_struct))));
-    magic.version = @divTrunc(pg.PG_VERSION_NUM, @as(c_int, 100));
-    if (@hasField(Pg_magic_struct, "funcmaxargs")) {
+
+    // PG 18 moved ABI fields into a nested abi_fields struct and added
+    // name/version (string) fields at the top level. PG 16/17 have the
+    // ABI fields directly on Pg_magic_struct.
+    if (@hasField(Pg_magic_struct, "abi_fields")) {
+        magic.abi_fields.version = @divTrunc(pg.PG_VERSION_NUM, @as(c_int, 100));
+        magic.abi_fields.funcmaxargs = pg.FUNC_MAX_ARGS;
+        magic.abi_fields.indexmaxkeys = pg.INDEX_MAX_KEYS;
+        magic.abi_fields.namedatalen = pg.NAMEDATALEN;
+        magic.abi_fields.float8byval = pg.FLOAT8PASSBYVAL;
+        magic.abi_fields.abi_extra = abi_extra_val;
+    } else {
+        magic.version = @divTrunc(pg.PG_VERSION_NUM, @as(c_int, 100));
         magic.funcmaxargs = pg.FUNC_MAX_ARGS;
-    }
-    if (@hasField(Pg_magic_struct, "indexmaxkeys")) {
         magic.indexmaxkeys = pg.INDEX_MAX_KEYS;
-    }
-    if (@hasField(Pg_magic_struct, "namedatalen")) {
         magic.namedatalen = pg.NAMEDATALEN;
-    }
-    if (@hasField(Pg_magic_struct, "float8byval")) {
         magic.float8byval = pg.FLOAT8PASSBYVAL;
-    }
-    if (@hasField(Pg_magic_struct, "abi_extra")) {
-        magic.abi_extra = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        magic.abi_extra = abi_extra_val;
     }
     return magic;
 }
