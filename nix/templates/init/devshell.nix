@@ -2,6 +2,7 @@
   pkgs,
   lib,
   project,
+  postgresql ? pkgs.postgresql_16_jit,
   ...
 }: let
   menu = ''
@@ -39,7 +40,7 @@ in {
       # Get pgzx development scripts like pglocal, pginit, pgstart...
       # We also need a local postgres for pglocal that we install in the devshell.
       pkgs.pgzx_scripts
-      pkgs.postgresql_16_jit
+      postgresql
 
       # Additional Zig tools.
       pkgs.zls # Zig Language Server

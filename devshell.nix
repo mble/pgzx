@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  postgresql ? pkgs.postgresql_16_jit,
   ...
 }: let
   menu = ''
@@ -48,7 +49,7 @@ in {
       pkgs.shellcheck
       pkgs.shfmt
 
-      pkgs.postgresql_16_jit
+      postgresql
       pkgs.openssl
       pkgs.gss
       pkgs.krb5

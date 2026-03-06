@@ -2,7 +2,7 @@
   description = "Description for the project";
 
   inputs = {
-    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.2405.635732.tar.gz";
+    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/~0.2511.tar.gz";
 
     parts.url = "github:hercules-ci/flake-parts";
 
@@ -132,21 +132,32 @@
         };
 
         devShells = let
-          devshell_nix = (import ./devshell.nix) {
-            inherit pkgs;
-            inherit lib;
-          };
+          mkDevShell = postgresql: let
+            devshell_nix = (import ./devshell.nix) {
+              inherit pkgs lib postgresql;
+            };
+          in
+            pkgs.mkShell (devshell_nix
+              // {
+                shellHook = ''
+                  ${devshell_nix.shellHook or ""}
+                  ${config.pre-commit.devShell.shellHook or ""}
+                '';
+              });
 
-          user_shell =
-            devshell_nix
+          # Default PG16 shell, used for the debug shell below.
+          default_shell_nix = (import ./devshell.nix) {
+            inherit pkgs lib;
+            postgresql = pkgs.postgresql_16_jit;
+          };
+          default_user_shell =
+            default_shell_nix
             // {
               shellHook = ''
-                ${devshell_nix.shellHook or ""}
+                ${default_shell_nix.shellHook or ""}
                 ${config.pre-commit.devShell.shellHook or ""}
               '';
             };
-
-          mkShell = pkgs.mkShell;
 
           # On darwin we expect command line tools to be installed.
           # It is possible to install clang/gcc as nix package, but linking
@@ -154,15 +165,18 @@
           # On non-darwin systems we will use the nix toolchain for now.
           useSystemCC = pkgs.stdenv.isDarwin;
         in {
-          default = mkShell user_shell;
+          default = mkDevShell pkgs.postgresql_16_jit;
+          pg16 = mkDevShell pkgs.postgresql_16_jit;
+          pg17 = mkDevShell pkgs.postgresql_17;
+          pg18 = mkDevShell pkgs.postgresql_18;
 
           # Create development shell with C tools and dependencies to build Postgres locally.
-          debug = mkShell (user_shell
+          debug = pkgs.mkShell (default_user_shell
             // {
               hardeningDisable = ["all"];
 
               packages =
-                user_shell.packages
+                default_user_shell.packages
                 ++ [
                   pkgs.flex
                   pkgs.bison
