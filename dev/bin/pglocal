@@ -113,11 +113,39 @@ done
 cp_recursive "$new_install_dir/lib/pkgconfig" "$($PG_CONFIG --pkglibdir)/pkgconfig"
 cp_recursive "$new_install_dir/lib/postgresql" "$($PG_CONFIG --pkglibdir)/postgresql"
 
+# copy pgxs (may be in a separate -dev output in Nix)
+pgxs_dir="$("$PG_CONFIG" --pkglibdir)/pgxs"
+if [ ! -d "$pgxs_dir" ]; then
+	# Nix splits pgxs into the -dev output; derive its path from --includedir
+	dev_root=$(dirname "$("$PG_CONFIG" --includedir)")
+	pgxs_dir="$dev_root/lib/pgxs"
+fi
+cp_recursive "$new_install_dir/lib/pgxs" "$pgxs_dir"
+
 # copy locale
 cp_recursive "$new_install_dir/share/locale" "$($PG_CONFIG --localedir)"
 
 # copy share
 cp_recursive "$new_install_dir/share/postgresql" "$($PG_CONFIG --sharedir)"
+
+# Generate a local pg_config wrapper that returns local installation paths.
+# The Nix pg_config returns Nix store paths split across multiple outputs,
+# but the build system expects all files relative to a single pkglibdir.
+cat >"$new_install_dir/bin/pg_config" <<PGCONFIG
+#!/usr/bin/env bash
+case "\$1" in
+    --bindir)            echo "$new_install_dir/bin" ;;
+    --includedir)        echo "$new_install_dir/include" ;;
+    --includedir-server) echo "$new_install_dir/include/server" ;;
+    --pkgincludedir)     echo "$new_install_dir/include" ;;
+    --libdir)            echo "$new_install_dir/lib" ;;
+    --pkglibdir)         echo "$new_install_dir/lib" ;;
+    --sharedir)          echo "$new_install_dir/share/postgresql" ;;
+    --localedir)         echo "$new_install_dir/share/locale" ;;
+    *)                   exec "$PG_CONFIG" "\$@" ;;
+esac
+PGCONFIG
+chmod +x "$new_install_dir/bin/pg_config"
 
 chmod -R +w "$new_install_dir"
 
