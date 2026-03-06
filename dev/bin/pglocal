@@ -140,6 +140,7 @@ case "\$1" in
     --pkgincludedir)     echo "$new_install_dir/include" ;;
     --libdir)            echo "$new_install_dir/lib" ;;
     --pkglibdir)         echo "$new_install_dir/lib" ;;
+    --pgxs)              echo "$new_install_dir/lib/pgxs/src/makefiles/pgxs.mk" ;;
     --sharedir)          echo "$new_install_dir/share/postgresql" ;;
     --localedir)         echo "$new_install_dir/share/locale" ;;
     *)                   exec "$PG_CONFIG" "\$@" ;;

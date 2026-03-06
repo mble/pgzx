@@ -16,8 +16,7 @@ echo "PATH='$PATH'"
 # system resolves paths relative to the local installation.
 if [ -x "$PG_BIN/pg_config" ]; then
 	PG_CONFIG=$PG_BIN/pg_config
-	echo "PG_CONFIG='$PG_CONFIG'"
-	export PG_CONFIG
+	echo "export PG_CONFIG='$PG_CONFIG'"
 fi
 
 PG_CLUSTER_DIR=$PG_HOME/var/$PG_CLUSTER_NAME
