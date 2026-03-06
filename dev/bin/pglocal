@@ -44,7 +44,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 # Ignore nix specific env var so we can ask pg_config for the correct paths
 unset NIX_PGLIBDIR
 
-PG_CONFIG=$(which pg_config)
+PG_CONFIG=${PG_CONFIG:-$(which pg_config)}
 
 rootdir=${PRJ_ROOT:-$(git rev-parse --show-toplevel)}
 outdir=${1:-$rootdir/out}
