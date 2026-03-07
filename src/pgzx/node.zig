@@ -39,8 +39,10 @@ pub inline fn boolVal(node: anytype) bool {
 }
 
 pub inline fn make(comptime T: type) *T {
-    const palloc0fn = if (@hasDecl(pg, "palloc0fast")) pg.palloc0fast else pg.palloc0;
-    const node: *pg.Node = @ptrCast(@alignCast(palloc0fn(@sizeOf(T))));
+    // palloc0fast is a C macro optimization that Zig 0.15.2's cimport
+    // cannot translate (bool vs comptime_int comparison). Use palloc0
+    // which works on all PG versions.
+    const node: *pg.Node = @ptrCast(@alignCast(pg.palloc0(@sizeOf(T))));
     node.*.type = @intFromEnum(mustFindTag(T));
     return @ptrCast(@alignCast(node));
 }
