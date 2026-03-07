@@ -44,7 +44,7 @@ pub fn main() !void {
     try w.writeAll(
         \\pub const std = @import("std");
         \\
-        \\pub const pg = @import("pgzx_pgsys");
+        \\pub const pg = @import("pgzx_pgsys").includes;
         \\
         \\
     );
