@@ -1,5 +1,5 @@
 const std = @import("std");
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 const err = @import("../err.zig");
 const datum = @import("../datum.zig");

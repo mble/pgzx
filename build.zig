@@ -65,9 +65,11 @@ pub fn build(b: *std.Build) void {
     const node_tags_src = blk: {
         const tool = b.addExecutable(.{
             .name = "gennodetags",
-            .root_source_file = b.path("./tools/gennodetags/main.zig"),
-            .target = b.graph.host,
-            .link_libc = true,
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("./tools/gennodetags/main.zig"),
+                .target = b.graph.host,
+                .link_libc = true,
+            }),
         });
         tool.root_module.addIncludePath(.{ .cwd_relative = pgbuild.getIncludeServerDir() });
         tool.root_module.addIncludePath(.{ .cwd_relative = pgbuild.getIncludeDir() });

@@ -5,7 +5,7 @@
 
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 const meta = @import("meta.zig");
 const err = @import("err.zig");
 
@@ -253,7 +253,7 @@ pub const MemoryContextAllocator = struct {
             @compileError("data must be a pointer");
         }
         try self.registerAllocResetCallbackFn(@ptrCast(data), struct {
-            fn wrapper(data_ptr: ?*anyopaque) callconv(.C) void {
+            fn wrapper(data_ptr: ?*anyopaque) callconv(.c) void {
                 f(@ptrCast(@alignCast(data_ptr)));
             }
         }.wrapper);

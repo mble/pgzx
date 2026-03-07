@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 const elog = @import("elog.zig");
 const mem = @import("mem.zig");
@@ -227,7 +227,7 @@ pub fn errorUnknownOption(list: anytype, def: *const DefElem, context: pg.Oid) v
     var hint: [:0]const u8 = "There are no valid options in this context.";
     const match = list.findClosestMatch(def, context);
     if (match) |m| {
-        hint = std.fmt.allocPrintZ(err_alloc, "did you mean \"{s}\"?", .{m.keyword}) catch unreachable();
+        hint = std.fmt.allocPrintSentinel(err_alloc, "did you mean \"{s}\"?", .{m.keyword}, 0) catch unreachable();
     }
 
     elog.ereport(@src(), .Error, .{

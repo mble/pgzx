@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 const collections = @import("collections.zig");
 const meta = @import("meta.zig");
 

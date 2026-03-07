@@ -37,7 +37,11 @@ pub fn main() !void {
     };
     defer out.close();
 
-    try out.writeAll(
+    var write_buf: [4096]u8 = undefined;
+    var file_writer = out.writer(&write_buf);
+    const w = &file_writer.interface;
+
+    try w.writeAll(
         \\pub const std = @import("std");
         \\
         \\pub const pg = @import("pgzx_pgsys");
@@ -47,40 +51,40 @@ pub fn main() !void {
 
     // 1. collect all node tags into `node_tags` list using comptime reflection.
     @setEvalBranchQuota(50000);
-    var node_tags = std.ArrayList([]const u8).init(arena);
-    defer node_tags.deinit();
+    var node_tags: std.ArrayList([]const u8) = .{};
+    defer node_tags.deinit(arena);
     const pg_mod = @typeInfo(pg).@"struct";
     inline for (pg_mod.decls) |decl| {
         const name = decl.name;
         if (std.mem.startsWith(u8, name, "T_")) {
-            node_tags.append(decl.name) catch |err| {
+            node_tags.append(arena, decl.name) catch |err| {
                 fatal("build node tags list: {}\n", .{err});
             };
         }
     }
 
     // 2. Create `Tag enum` with all known node tags.
-    try out.writeAll("pub const Tag = enum (pg.NodeTag) {\n");
+    try w.writeAll("pub const Tag = enum (pg.NodeTag) {\n");
     for (node_tags.items) |tag| {
         const name = tag[2..];
-        try out.writer().print("{s} = pg.{s},\n", .{ name, tag });
+        try w.print("{s} = pg.{s},\n", .{ name, tag });
     }
-    try out.writeAll("};\n\n");
+    try w.writeAll("};\n\n");
 
     // 3. Create types -> tags mappings. Only add tags for valid types.
-    try out.writeAll("pub const TypeTagTable = .{\n");
+    try w.writeAll("pub const TypeTagTable = .{\n");
     for (node_tags.items) |tag| {
         if (tagsOnly.has(tag))
             continue;
 
         const typeName = tag[2..];
-        try out.writeAll(".{");
-        try out.writer().print("pg.{s}, pg.{s}", .{ tag, typeName });
-        try out.writeAll("},\n");
+        try w.writeAll(".{");
+        try w.print("pg.{s}, pg.{s}", .{ tag, typeName });
+        try w.writeAll("},\n");
     }
-    try out.writeAll("};\n");
+    try w.writeAll("};\n");
 
-    try out.writeAll(
+    try w.writeAll(
         \\pub inline fn findTag(comptime T: type) ?Tag {
         \\    inline for (TypeTagTable) |entry| {
         \\        if (entry[1] == T) {
@@ -101,6 +105,7 @@ pub fn main() !void {
         \\}
     );
 
+    try w.flush();
     return std.process.cleanExit();
 }
 

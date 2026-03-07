@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 pub inline fn registerHooks(comptime T: anytype) void {
     if (std.meta.hasFn(T, "requestHook")) {
@@ -47,7 +47,7 @@ pub inline fn registerStartupHook(f: anytype) void {
 inline fn registerHook(f: anytype, hook: anytype) void {
     const ctx = struct {
         var prev_hook: @TypeOf(hook.*) = undefined;
-        fn hook_fn() callconv(.C) void {
+        fn hook_fn() callconv(.c) void {
             if (prev_hook) |prev| {
                 prev();
             }

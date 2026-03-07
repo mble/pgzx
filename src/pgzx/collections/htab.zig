@@ -6,7 +6,7 @@
 
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 const err = @import("../err.zig");
 const meta = @import("../meta.zig");
@@ -493,7 +493,7 @@ pub const TestSuite_HTab = struct {
 
     pub fn testGetOrPutEntryStringWithCustomCallbacks() !void {
         const callbacks = struct {
-            fn strcmp(a: ?*const anyopaque, b: ?*const anyopaque, sz: usize) callconv(.C) c_int {
+            fn strcmp(a: ?*const anyopaque, b: ?*const anyopaque, sz: usize) callconv(.c) c_int {
                 const char_ptr_a: [*c]const u8 = @ptrCast(a);
                 const char_ptr_b: [*c]const u8 = @ptrCast(b);
                 const str_a = std.mem.span(char_ptr_a);
@@ -505,7 +505,7 @@ pub const TestSuite_HTab = struct {
                 return pg.strncmp(str_a, str_b, sz);
             }
 
-            fn strcpy(to: ?*anyopaque, from: ?*const anyopaque, sz: usize) callconv(.C) ?*anyopaque {
+            fn strcpy(to: ?*anyopaque, from: ?*const anyopaque, sz: usize) callconv(.c) ?*anyopaque {
                 const char_ptr_to: [*c]u8 = @ptrCast(to);
                 const char_ptr_from: [*c]const u8 = @ptrCast(from);
 

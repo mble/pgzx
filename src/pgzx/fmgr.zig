@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 const elog = @import("elog.zig");
 const datum = @import("datum.zig");
@@ -64,11 +64,11 @@ pub inline fn PG_MODULE_MAGIC() void {
     @export(&Pg_magic_func, .{ .name = "Pg_magic_func" });
 }
 
-fn Pg_magic_func() callconv(.C) [*c]const Pg_magic_struct {
+fn Pg_magic_func() callconv(.c) [*c]const Pg_magic_struct {
     return &PG_MAGIC;
 }
 
-pub fn FunctionV1() callconv(.C) [*c]const Pg_finfo_record {
+pub fn FunctionV1() callconv(.c) [*c]const Pg_finfo_record {
     return &PG_FINFO_V1_RECORD;
 }
 
@@ -103,7 +103,7 @@ pub inline fn PG_EXPORT(comptime mod: type) void {
 inline fn genFnCall(comptime f: anytype) type {
     return struct {
         const function: @TypeOf(f) = f;
-        fn call(fcinfo: pg.FunctionCallInfo) callconv(.C) pg.Datum {
+        fn call(fcinfo: pg.FunctionCallInfo) callconv(.c) pg.Datum {
             return pgCall(@src(), function, fcinfo);
         }
     };
@@ -131,8 +131,8 @@ pub inline fn pgCall(
     }
 
     const value = switch (@typeInfo(meta.fnReturnType(fnType))) {
-        .error_union, .error_set => @call(.no_async, impl, callArgs) catch |e| elog.throwAsPostgresError(src, e),
-        else => @call(.no_async, impl, callArgs),
+        .error_union, .error_set => @call(.auto, impl, callArgs) catch |e| elog.throwAsPostgresError(src, e),
+        else => @call(.auto, impl, callArgs),
     };
 
     const result_conv = datum.findConv(@TypeOf(value));

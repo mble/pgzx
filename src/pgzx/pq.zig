@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 const intr = @import("interrupts.zig");
 const elog = @import("elog.zig");
@@ -192,7 +192,7 @@ pub const Conn = struct {
         defer arena.deinit();
         const local_allocator = arena.allocator();
 
-        var buffer = std.ArrayList(u8).init(local_allocator);
+        var buffer: std.ArrayList(u8) = .{};
         return self.execParams(stmt, try buildParams(local_allocator, &buffer, args));
     }
 
@@ -201,7 +201,7 @@ pub const Conn = struct {
         defer arena.deinit();
         const local_allocator = arena.allocator();
 
-        var buffer = std.ArrayList(u8).init(local_allocator);
+        var buffer: std.ArrayList(u8) = .{};
         var res = try self.execParams(
             command,
             try buildParams(local_allocator, &buffer, args),
@@ -272,7 +272,7 @@ pub const Conn = struct {
         defer arena.deinit();
         const local_allocator = arena.allocator();
 
-        var buffer = std.ArrayList(u8).init(local_allocator);
+        var buffer: std.ArrayList(u8) = .{};
         try self.sendQueryParams(
             command,
             try buildParams(local_allocator, &buffer, args),
@@ -662,7 +662,7 @@ pub fn buildParams(
     // collect the pointers after the encoding buffer has been fully written.
     var value_indices = try local_allocator.alloc(i32, argsInfo.@"struct".fields.len);
 
-    const writer: std.ArrayList(u8).Writer = buffer.writer();
+    const writer: std.ArrayList(u8).Writer = buffer.writer(allocator);
     var types = try allocator.alloc(pg.Oid, argsInfo.@"struct".fields.len);
 
     inline for (argsInfo.@"struct".fields, 0..) |field, idx| {

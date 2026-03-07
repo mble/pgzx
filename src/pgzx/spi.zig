@@ -1,10 +1,29 @@
 const std = @import("std");
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 const meta = @import("meta.zig");
 const mem = @import("mem.zig");
 const err = @import("err.zig");
 const datum = @import("datum.zig");
+
+/// Access a FormData_pg_attribute from a TupleDesc by index.
+///
+/// PG18 changed TupleDescData to use compact_attrs flexible array followed by
+/// FormData_pg_attribute entries. The auto-translated TupleDescAttr is broken
+/// in Zig 0.15 because @offsetOf can't resolve the flexible array member, so
+/// we compute the address manually for PG18+.
+///
+/// PG17 and earlier use the .attrs() flexible array directly.
+fn tupleDescAttr(desc: pg.TupleDesc, i: c_int) *pg.FormData_pg_attribute {
+    if (pg.PG_MAJORVERSION_NUM >= 18) {
+        const compact_attrs_ptr: [*]const u8 = @ptrCast(desc.*.compact_attrs());
+        const attrs_base = compact_attrs_ptr + @as(usize, @intCast(desc.*.natts)) * @sizeOf(pg.CompactAttribute);
+        const attrs: [*]pg.FormData_pg_attribute = @ptrCast(@alignCast(@constCast(attrs_base)));
+        return &attrs[@intCast(i)];
+    } else {
+        return &desc.*.attrs()[@intCast(i)];
+    }
+}
 
 pub fn connect() err.PGError!void {
     const status = pg.SPI_connect();

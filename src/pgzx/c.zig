@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const includes = @cImport({
+pub const includes = @cImport({
     @cInclude("postgres.h");
     @cInclude("postgres_ext.h");
 
@@ -201,5 +201,3 @@ const includes = @cImport({
     @cInclude("libpq/libpq-be.h");
     @cInclude("libpqsrv.h");
 });
-
-pub usingnamespace includes;

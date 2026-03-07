@@ -1,7 +1,7 @@
 //! varatt replaces the VA<...> macros from utils/varattr.h that Zig didn't
 //! compile correctly.
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 // WARNING:
 // Taken from translated C code and mostly untested.

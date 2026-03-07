@@ -4,7 +4,7 @@
 //! The global locks like `AddinShmemInitLock` are not directly accessible from
 //! the generated C bindings. We provide wrapper functions for them here.
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("pgzx_pgsys").includes;
 
 // access `MainLWLockArray`.
 //
