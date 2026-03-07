@@ -269,8 +269,6 @@ pub inline fn errconstraint(name: [:0]const u8) OptField {
     return errfield(Field.ConstraintName, name);
 }
 
-
-
 /// Turn the zig error into a postgres error. The errror will be send to
 /// Postgres and logged using the error level.
 ///
