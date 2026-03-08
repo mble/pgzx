@@ -32,7 +32,7 @@ pub const PGCurrentContextAllocator: std.mem.Allocator = .{
 fn pgAlloc(ctx: *anyopaque, len: usize, ptr_align: std.mem.Alignment, ret_addr: usize) ?[*]u8 {
     _ = ret_addr;
     _ = ctx;
-    return @ptrCast(pg.palloc_aligned(len, @intFromEnum(ptr_align), pg.MCXT_ALLOC_NO_OOM));
+    return @ptrCast(pg.palloc_aligned(len, ptr_align.toByteUnits(), pg.MCXT_ALLOC_NO_OOM));
 }
 
 fn pgFree(ctx: *anyopaque, buf: []u8, buf_align: std.mem.Alignment, ret_addr: usize) void {
@@ -277,7 +277,7 @@ pub const MemoryContextAllocator = struct {
         _ = ret_addr;
         const self: *MemoryContextAllocator = @ptrCast(@alignCast(ctx));
         const memctx = self.ctx;
-        const ptr = pg.MemoryContextAllocAligned(memctx, len, @intFromEnum(ptr_align), self.flags);
+        const ptr = pg.MemoryContextAllocAligned(memctx, len, ptr_align.toByteUnits(), self.flags);
         return @ptrCast(ptr);
     }
 };
