@@ -560,13 +560,13 @@ pub const RunTestsOptions = struct {
 /// This runs the following SQL commands:
 ///
 ///  DROP FUNCTION IF EXISTS run_tests;
-///  CREATE FUNCTION run_tests() RETURNS INTEGER AS '\''$libdir/{name}'\'' LANGUAGE C IMMUTABLE;
+///  CREATE FUNCTION run_tests() RETURNS INTEGER AS '\''$libdir/{name}'\'' LANGUAGE C VOLATILE;
 ///  SELECT run_tests();
 pub fn addRunTests(b: *Build, options: RunTestsOptions) *RunExec {
     const sql = std.fmt.allocPrint(
         b.std_build.allocator,
         \\ DROP FUNCTION IF EXISTS run_tests;
-        \\ CREATE FUNCTION run_tests() RETURNS INTEGER AS '$libdir/{s}' LANGUAGE C IMMUTABLE;
+        \\ CREATE FUNCTION run_tests() RETURNS INTEGER AS '$libdir/{s}' LANGUAGE C VOLATILE;
         \\ SELECT run_tests();
     ,
         .{options.name},

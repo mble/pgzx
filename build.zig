@@ -48,6 +48,7 @@ pub fn build(b: *std.Build) void {
         module.addCSourceFiles(.{
             .files = &[_][]const u8{
                 "./src/pgzx/c/tupdesc_compat.c",
+                "./src/pgzx/c/hsearch_compat.c",
                 "./src/pgzx/c/libpqsrv.c",
             },
             .flags = &[_][]const u8{

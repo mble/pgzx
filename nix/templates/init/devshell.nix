@@ -55,6 +55,23 @@ in {
     export PATH="$PG_HOME/bin:$PRJ_ROOT/dev/scripts:$PATH"
     export NIX_PGLIBDIR=$PG_HOME/lib
 
+    # Zig 0.15 rejects Nix's reproducibility-only prefix remap flags on Darwin,
+    # but still needs the include paths from NIX_CFLAGS_COMPILE for @cImport.
+    ${lib.optionalString pkgs.stdenv.isDarwin ''
+      if [ -n "''${NIX_CFLAGS_COMPILE:-}" ]; then
+        filtered_nix_cflags_compile=""
+        for flag in $NIX_CFLAGS_COMPILE; do
+          case "$flag" in
+            -fmacro-prefix-map=*) ;;
+            *)
+              filtered_nix_cflags_compile="''${filtered_nix_cflags_compile:+$filtered_nix_cflags_compile }$flag"
+              ;;
+          esac
+        done
+        export NIX_CFLAGS_COMPILE="$filtered_nix_cflags_compile"
+      fi
+    ''}
+
     alias root='cd $PRJ_ROOT'
 
     menu

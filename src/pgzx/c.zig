@@ -195,6 +195,7 @@ pub const includes = @cImport({
 
     // compat shims for PG version differences
     @cInclude("tupdesc_compat.h");
+    @cInclude("hsearch_compat.h");
 
     // libpq support
     @cInclude("libpq-fe.h");

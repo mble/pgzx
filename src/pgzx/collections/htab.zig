@@ -28,7 +28,7 @@ const DirConfig = struct {
 /// Initialize the `keysize` to match the field size of your Entry's key type.
 pub fn HTab(comptime Context: type) type {
     return struct {
-        htab: *pg.HTAB,
+        htab: HTabHandle,
 
         pub const Entry = Context.Entry;
         pub const Key = Context.Key;
@@ -40,6 +40,8 @@ pub fn HTab(comptime Context: type) type {
         const ValuesIterator = HTabValuesIter(Context);
 
         const Self = @This();
+        const MaybeHTabHandle = @typeInfo(@TypeOf(pg.pgzx_hash_create)).@"fn".return_type.?;
+        const HTabHandle = @typeInfo(MaybeHTabHandle).optional.child;
 
         pub const EntryResult = struct {
             found: bool,
@@ -66,20 +68,20 @@ pub fn HTab(comptime Context: type) type {
             }
 
             pub fn initHashCtl(self: Options) pg.HASHCTL {
-                return .{
-                    .num_partitions = @intCast(self.num_partitions orelse 0),
-                    .ssize = @intCast(self.segment_size orelse 0),
-                    .dsize = @intCast(if (self.dir) |d| d.init_size else 0),
-                    .max_dsize = @intCast(if (self.dir) |d| d.max_dsize else pg.NO_MAX_DSIZE),
-                    .keysize = @intCast(if (self.keysize) |k| k else Context.keySize()),
-                    .entrysize = @intCast(if (self.entrysize) |e| e else Context.entrySize()),
-                    .hash = if (self.hash == .Func) self.hash.Func else null,
-                    .match = self.match,
-                    .keycopy = self.keycopy,
-                    .alloc = self.alloc,
-                    .hcxt = self.memctx,
-                    .hctl = null,
-                };
+                var hctl: pg.HASHCTL = std.mem.zeroes(pg.HASHCTL);
+                hctl.num_partitions = @intCast(self.num_partitions orelse 0);
+                hctl.ssize = @intCast(self.segment_size orelse 0);
+                hctl.dsize = @intCast(if (self.dir) |d| d.init_size else 0);
+                hctl.max_dsize = @intCast(if (self.dir) |d| d.max_dsize else pg.NO_MAX_DSIZE);
+                hctl.keysize = @intCast(if (self.keysize) |k| k else Context.keySize());
+                hctl.entrysize = @intCast(if (self.entrysize) |e| e else Context.entrySize());
+                hctl.hash = if (self.hash == .Func) self.hash.Func else null;
+                hctl.match = self.match;
+                hctl.keycopy = self.keycopy;
+                hctl.alloc = self.alloc;
+                hctl.hcxt = self.memctx;
+                hctl.hctl = null;
+                return hctl;
             }
 
             pub fn initFlags(self: Options) c_int {
@@ -101,10 +103,10 @@ pub fn HTab(comptime Context: type) type {
         };
 
         pub inline fn init(name: [:0]const u8, nelem: usize, options: Options) !Self {
-            const hctl = options.initHashCtl();
+            var hctl = options.initHashCtl();
             const flags = options.initFlags();
 
-            const created = try err.wrap(pg.hash_create, .{ name, @as(c_long, @intCast(nelem)), &hctl, flags });
+            const created = try err.wrap(pg.pgzx_hash_create, .{ name.ptr, @as(c_long, @intCast(nelem)), &hctl, flags });
             return Self.initFrom(created.?);
         }
 
@@ -112,10 +114,10 @@ pub fn HTab(comptime Context: type) type {
         /// can not be expanded on the fly. The size settings should be  a good
         /// of what the worker will need.
         pub inline fn initShmem(name: [:0]const u8, init_size: usize, max_size: usize, options: Options) !Self {
-            const hctl = options.initHashCtl();
+            var hctl = options.initHashCtl();
             const flags = options.initFlags();
-            const created = try err.wrap(pg.ShmemInitHash, .{
-                name,
+            const created = try err.wrap(pg.pgzx_shmem_init_hash, .{
+                name.ptr,
                 @as(c_long, @intCast(init_size)),
                 @as(c_long, @intCast(max_size)),
                 &hctl,
@@ -125,37 +127,37 @@ pub fn HTab(comptime Context: type) type {
         }
 
         // Initialize from an existing hash table pointer.
-        pub inline fn initFrom(htable: *pg.HTAB) Self {
+        pub inline fn initFrom(htable: HTabHandle) Self {
             return .{ .htab = htable };
         }
 
         pub inline fn deinit(self: Self) void {
-            pg.hash_destroy(self.htab);
+            pg.pgzx_hash_destroy(self.htab);
         }
 
-        pub fn asPtr(self: Self) *pg.HTAB {
+        pub fn asPtr(self: Self) HTabHandle {
             return self.htab;
         }
 
         pub fn freeze(self: Self) void {
-            pg.hash_freeze(self.htab);
+            pg.pgzx_hash_freeze(self.htab);
         }
 
         /// Compute the hash value for a given key.
         pub fn getHashValue(self: Self, key: ConstKeyPtr) u32 {
-            return pg.get_hash_value(self.htab, key);
+            return pg.pgzx_get_hash_value(self.htab, key);
         }
 
         pub fn count(self: Self) usize {
-            return @intCast(pg.hash_get_num_entries(self.htab));
+            return @intCast(pg.pgzx_hash_get_num_entries(self.htab));
         }
 
         pub fn getRawEntryPointer(self: Self, key: ?*const anyopaque, found: ?*bool) ?*anyopaque {
-            return pg.hash_search(self.htab, key, pg.HASH_FIND, found);
+            return pg.pgzx_hash_search(self.htab, key, pg.HASH_FIND, found);
         }
 
         pub fn getOrPutRawEntryPointer(self: Self, key: ?*const anyopaque, found: ?*bool) error{OutOfMemory}!?*anyopaque {
-            const p = pg.hash_search(self.htab, key, pg.HASH_ENTER_NULL, found);
+            const p = pg.pgzx_hash_search(self.htab, key, pg.HASH_ENTER_NULL, found);
             if (p == null) {
                 return error.OutOfMemory;
             }
@@ -192,7 +194,7 @@ pub fn HTab(comptime Context: type) type {
 
         pub fn remove(self: Self, key: ConstKeyPtr) bool {
             var found: bool = undefined;
-            _ = pg.hash_search(self.htab, Self.keyPtr(key), pg.HASH_REMOVE, &found);
+            _ = pg.pgzx_hash_search(self.htab, Self.keyPtr(key), pg.HASH_REMOVE, &found);
             return found;
         }
 
@@ -250,7 +252,7 @@ pub fn HTabIter(comptime Context: type) type {
 
         const Self = @This();
 
-        pub fn init(htab: *pg.HTAB) Self {
+        pub fn init(htab: HTab(Context).HTabHandle) Self {
             // SAFETY:
             //   The status type is initialized by the hash_seq_init function only.
             //   It only holds a pointer into HTAB but is not self referential
@@ -259,7 +261,7 @@ pub fn HTabIter(comptime Context: type) type {
             //   It is safe to move the 'status', but it SHOULD NOT be copied.
             //   If the hash table is not frozen Postgres keeps track
             var status: pg.HASH_SEQ_STATUS = undefined;
-            pg.hash_seq_init(&status, htab);
+            pg.pgzx_hash_seq_init(&status, htab);
             return .{ .status = status };
         }
 
@@ -272,7 +274,7 @@ pub fn HTabIter(comptime Context: type) type {
         // scans in Postgres, which eventually resuls in an error being thrown
         // either now, or by some other iteration.
         pub fn term(self: *Self) void {
-            pg.hash_seq_term(&self.status);
+            pg.pgzx_hash_seq_term(&self.status);
         }
 
         // Get the pointer to the next entry in the hash table.
@@ -280,7 +282,7 @@ pub fn HTabIter(comptime Context: type) type {
         // Returns null if the iteration is done. The iterator is automatically
         // terminated in this case and one must not use the `term` method.
         pub fn next(self: *Self) ?*Context.Entry {
-            const p = pg.hash_seq_search(&self.status);
+            const p = pg.pgzx_hash_seq_search(&self.status);
             if (p == null) {
                 return null;
             }
